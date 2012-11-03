@@ -38,8 +38,11 @@ type Lexer struct {
 	items *ring.Ring // buffer of lexed items
 }
 
-// Create a new lexer. Use the lexer by instantiating it and repeatedly calling Next.
+// Create a new lexer. Must be given a non-nil state.
 func New(start StateFn, input string) *Lexer {
+	if start == nil {
+		panic("nil start state")
+	}
 	return &Lexer{input: input}
 }
 
