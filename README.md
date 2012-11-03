@@ -1,11 +1,13 @@
-
 [install go]: http://golang.org/install.html "Install Go"
-[the godoc url]: http://localhost:6060/pkg/github.com/bmatsuo/lexer/ "the Godoc URL"
+[the gopkgdoc url]: http://gopkgdoc.appspot.com/pkg/github.com/bmatsuo/go-lexer/ "the GoPkgDoc URL"
 
 About go-lexer
 =============
 
-go-lexer is the best program for...
+Package lexer provides a simple scanner and types for handrolling lexers.
+The implementation is based on Rob Pike's talk.
+
+    http://www.youtube.com/watch?v=HxaD_trXwRE
 
 Documentation
 =============
@@ -18,21 +20,16 @@ Prerequisites
 Installation
 -------------
 
-    go get github.com/bmatsuo/lexer
+    go get github.com/bmatsuo/go-lexer
 
 General Documentation
 ---------------------
 
 Use `go doc` to vew the documentation for go-lexer
 
-    go doc github.com/bmatsuo/lexer
+    go doc github.com/bmatsuo/go-lexer
 
-Or alternatively, use a godoc http server
-
-    godoc -http=:6060
-
-and visit [the Godoc URL][]
-
+Or alternatively, visit [the GoPkgDoc url][].
 
 Author
 ======

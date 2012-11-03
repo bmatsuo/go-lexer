@@ -9,7 +9,7 @@
  */
 
 // Package lexer provides a simple scanner and types for handrolling lexers.
-// The implementation is based on Rob Pikes talk.
+// The implementation is based on Rob Pike's talk.
 //	  	http://www.youtube.com/watch?v=HxaD_trXwRE
 package lexer
 
