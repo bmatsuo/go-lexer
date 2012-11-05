@@ -14,7 +14,7 @@
 package lexer
 
 import (
-	"container/ring"
+	"container/list"
 	"fmt"
 	"math"
 	"strings"
@@ -35,7 +35,7 @@ type Lexer struct {
 	width int        // length of the last rune read
 	last  rune       // the last rune read
 	state StateFn    // the current state
-	items *ring.Ring // buffer of lexed items
+	items *list.List // Buffer of lexed items
 }
 
 // Create a new lexer. Must be given a non-nil state.
@@ -43,7 +43,10 @@ func New(start StateFn, input string) *Lexer {
 	if start == nil {
 		panic("nil start state")
 	}
-	return &Lexer{input: input}
+	return &Lexer{
+		input: input,
+		items: list.New(),
+	}
 }
 
 // The starting position of the current item.
@@ -84,7 +87,7 @@ func (l *Lexer) Backup() {
 
 // Returns the next rune in the input stream without adding it to the current lexeme.
 func (l *Lexer) Peek() (r rune, width int) {
-	r := l.Advance()
+	r = l.Advance()
 	width = l.width
 	l.Backup()
 	return
@@ -150,32 +153,26 @@ func (l *Lexer) Emit(t ItemType) {
 
 // The method by which items are extracted from the input.
 // Can result in infinite loops if state functions fail to emit ItemEOF.
-func (l *Lexer) Next() *Item {
-	for l.items == nil {
+func (l *Lexer) Next() (i *Item) {
+	for {
+		if head := l.dequeue(); head != nil {
+			return head
+		}
 		l.state = l.state(l)
 	}
-	return l.dequeue()
+	panic("unreachable")
 }
 
 func (l *Lexer) enqueue(i *Item) {
-	r := ring.New(1)
-	r.Value = i
-	if l.items == nil {
-		l.items = r
-	} else {
-		l.items.Prev().Link(r)
-	}
+	l.items.PushBack(i)
 }
 
 func (l *Lexer) dequeue() *Item {
-	if l.items == nil {
+	head := l.items.Front()
+	if head == nil {
 		return nil
 	}
-	r := l.items.Unlink(1)
-	if r == l.items {
-		l.items = nil
-	}
-	return r.Value.(*Item)
+	return l.items.Remove(head).(*Item)
 }
 
 // A type for all the types of items in the language being lexed.
