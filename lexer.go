@@ -70,14 +70,14 @@ func (l *Lexer) Last() (r rune, width int) {
 }
 
 // Add one rune of the input stream to the current lexeme.
-func (l *Lexer) Advance() rune {
+func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
-		return EOF
+		return EOF, l.width
 	}
 	l.last, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += l.width
-	return l.last
+	return l.last, l.width
 }
 
 // Remove the last rune from the current lexeme and place back in the stream.
@@ -87,8 +87,7 @@ func (l *Lexer) Backup() {
 
 // Returns the next rune in the input stream without adding it to the current lexeme.
 func (l *Lexer) Peek() (r rune, width int) {
-	r = l.Advance()
-	width = l.width
+	r, width = l.Advance()
 	l.Backup()
 	return
 }
@@ -100,7 +99,9 @@ func (l *Lexer) Ignore() {
 
 // Advance the lexer only if the next rune is in the valid string.
 func (l *Lexer) Accept(valid string) (ok bool) {
-	if ok = strings.IndexRune(valid, l.Advance()) >= 0; !ok {
+	r, _ := l.Advance()
+	ok = strings.IndexRune(valid, r) >= 0
+	if !ok {
 		l.Backup()
 	}
 	return
@@ -115,17 +116,18 @@ func (l *Lexer) AcceptRun(valid string) (n int) {
 }
 
 // Like Advance but uses a range table for efficiency.
-func (l *Lexer) AcceptRangeTable(rangeTab *unicode.RangeTable) (ok bool) {
-	r := l.Advance()
-	if ok = unicode.Is(rangeTab, r); !ok {
+func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
+	r, _ := l.Advance()
+	ok = unicode.Is(rangeTab, r)
+	if !ok {
 		l.Backup()
 	}
 	return
 }
 
 // Like AdvanceRun but uses a range table for efficiency.
-func (l *Lexer) AcceptRangeTableRun(rangeTab *unicode.RangeTable) (n int) {
-	for l.AcceptRangeTable(rangeTab) {
+func (l *Lexer) AcceptRangeRun(rangeTab *unicode.RangeTable) (n int) {
+	for l.AcceptRange(rangeTab) {
 		n++
 	}
 	return
@@ -152,11 +154,14 @@ func (l *Lexer) Emit(t ItemType) {
 }
 
 // The method by which items are extracted from the input.
-// Can result in infinite loops if state functions fail to emit ItemEOF.
+// Returns nil if the lexer has entered a nil state.
 func (l *Lexer) Next() (i *Item) {
 	for {
 		if head := l.dequeue(); head != nil {
 			return head
+		}
+		if l.state == nil {
+			return nil
 		}
 		l.state = l.state(l)
 	}
