@@ -28,6 +28,7 @@ const EOF rune = 0x04
 // The state functions are responsible for emitting ItemEOF.
 type StateFn func(*Lexer) StateFn
 
+// A type for building lexers.
 type Lexer struct {
 	input string     // string being scanned
 	start int        // start position for the current lexeme
@@ -69,13 +70,18 @@ func (l *Lexer) Last() (r rune, width int) {
 	return l.last, l.width
 }
 
-// Add one rune of the input stream to the current lexeme.
+// Add one rune of the input stream to the current lexeme. Invalid UTF-8
+// codepoints cause the current call and all subsequent calls to return
+// (unicode.RuneError, 1).
 func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
 		return EOF, l.width
 	}
 	l.last, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
+	if l.last == unicode.RuneError && l.width == 1 {
+		return l.last, l.width
+	}
 	l.pos += l.width
 	return l.last, l.width
 }
