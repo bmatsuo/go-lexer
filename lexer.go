@@ -45,6 +45,7 @@ func New(start StateFn, input string) *Lexer {
 		panic("nil start state")
 	}
 	return &Lexer{
+		state: start,
 		input: input,
 		items: list.New(),
 	}
@@ -72,14 +73,14 @@ func (l *Lexer) Last() (r rune, width int) {
 
 // Add one rune of the input stream to the current lexeme. Invalid UTF-8
 // codepoints cause the current call and all subsequent calls to return
-// (unicode.RuneError, 1).
+// (utf8.RuneError, 1).
 func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
 		return EOF, l.width
 	}
 	l.last, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
-	if l.last == unicode.RuneError && l.width == 1 {
+	if l.last == utf8.RuneError && l.width == 1 {
 		return l.last, l.width
 	}
 	l.pos += l.width
@@ -92,10 +93,9 @@ func (l *Lexer) Backup() {
 }
 
 // Returns the next rune in the input stream without adding it to the current lexeme.
-func (l *Lexer) Peek() (r rune, width int) {
-	r, width = l.Advance()
-	l.Backup()
-	return
+func (l *Lexer) Peek() (c rune, width int) {
+	defer func() { l.Backup() }()
+	return l.Advance()
 }
 
 // Throw away the current lexeme (do not call Emit).
@@ -103,7 +103,9 @@ func (l *Lexer) Ignore() {
 	l.start = l.pos
 }
 
-// Advance the lexer only if the next rune is in the valid string.
+// The Accept[Run][Range] family of methods take a set and advance the lexer
+// if incoming runes are in the set. The AcceptRun subfamily advance the lexer
+// as far as possible.
 func (l *Lexer) Accept(valid string) (ok bool) {
 	r, _ := l.Advance()
 	ok = strings.IndexRune(valid, r) >= 0
@@ -112,16 +114,6 @@ func (l *Lexer) Accept(valid string) (ok bool) {
 	}
 	return
 }
-
-// Advance the lexer as long the next rune is in the valid string.
-func (l *Lexer) AcceptRun(valid string) (n int) {
-	for l.Accept(valid) {
-		n++
-	}
-	return
-}
-
-// Like Advance but uses a range table for efficiency.
 func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
 	r, _ := l.Advance()
 	ok = unicode.Is(rangeTab, r)
@@ -130,9 +122,13 @@ func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
 	}
 	return
 }
-
-// Like AdvanceRun but uses a range table for efficiency.
-func (l *Lexer) AcceptRangeRun(rangeTab *unicode.RangeTable) (n int) {
+func (l *Lexer) AcceptRun(valid string) (n int) {
+	for l.Accept(valid) {
+		n++
+	}
+	return
+}
+func (l *Lexer) AcceptRunRange(rangeTab *unicode.RangeTable) (n int) {
 	for l.AcceptRange(rangeTab) {
 		n++
 	}
@@ -167,7 +163,7 @@ func (l *Lexer) Next() (i *Item) {
 			return head
 		}
 		if l.state == nil {
-			return nil
+			return &Item{ItemEOF, l.start, ""}
 		}
 		l.state = l.state(l)
 	}
