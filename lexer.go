@@ -18,7 +18,6 @@ import (
 	"math"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 const EOF rune = 0x04
@@ -82,11 +81,16 @@ func (l *Lexer) Advance() (rune, int) {
 	}
 	if l.backed {
 		l.backed = false
+		/*
 	} else {
 		l.last, l.width = utf8.DecodeRune(l.input[l.pos:])
 		if l.last == utf8.RuneError && l.width == 1 {
 			return l.last, l.width
 		}
+	}
+	*/
+	} else {
+		l.last, l.width = rune(l.input[l.pos]), 1
 	}
 	l.pos += l.width
 	return l.last, l.width
