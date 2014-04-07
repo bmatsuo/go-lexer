@@ -114,7 +114,11 @@ func (l *Lexer) Ignore() {
 // as far as possible.
 func (l *Lexer) Accept(valid string) (ok bool) {
 	r, _ := l.Advance()
-	ok = strings.IndexRune(valid, r) >= 0
+	if len(valid) == 1 {
+		ok = r == rune(valid[0])
+	} else {
+		ok = strings.IndexRune(valid, r) >= 0
+	}
 	if !ok {
 		l.Backup()
 	}
