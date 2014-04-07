@@ -131,6 +131,16 @@ func (l *Lexer) AcceptMinMax(min, max rune) (ok bool) {
 	l.Backup()
 	return false
 }
+func (l *Lexer) AcceptRunes(cs []rune) (ok bool) {
+	r, _ := l.Advance()
+	for i := range cs {
+		if cs[i] == r {
+			return true
+		}
+	}
+	l.Backup()
+	return false
+}
 func (l *Lexer) AcceptRune(c rune) (ok bool) {
 	r, _ := l.Advance()
 	if r == c {
@@ -167,6 +177,12 @@ func (l *Lexer) AcceptRunMinMax(min, max rune) (n int) {
 }
 func (l *Lexer) AcceptRunRune(c rune) (n int) {
 	for l.AcceptRune(c) {
+		n++
+	}
+	return
+}
+func (l *Lexer) AcceptRunRunes(cs []rune) (n int) {
+	for l.AcceptRunes(cs) {
 		n++
 	}
 	return
