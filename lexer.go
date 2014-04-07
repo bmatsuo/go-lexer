@@ -82,9 +82,9 @@ func (l *Lexer) Advance() (rune, int) {
 		l.backed = false
 	} else {
 		l.last, l.width = utf8.DecodeRune(l.input[l.pos:])
-	}
-	if l.last == utf8.RuneError && l.width == 1 {
-		return l.last, l.width
+		if l.last == utf8.RuneError && l.width == 1 {
+			return l.last, l.width
+		}
 	}
 	l.pos += l.width
 	return l.last, l.width
