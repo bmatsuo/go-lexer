@@ -123,6 +123,22 @@ func (l *Lexer) Accept(valid string) (ok bool) {
 	}
 	return
 }
+func (l *Lexer) AcceptMinMax(min, max rune) (ok bool) {
+	r, _ := l.Advance()
+	if min <= r && r <= max {
+		return true
+	}
+	l.Backup()
+	return false
+}
+func (l *Lexer) AcceptRune(c rune) (ok bool) {
+	r, _ := l.Advance()
+	if r == c {
+		return true
+	}
+	l.Backup()
+	return false
+}
 func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
 	r, _ := l.Advance()
 	ok = unicode.Is(rangeTab, r)
@@ -139,6 +155,18 @@ func (l *Lexer) AcceptRun(valid string) (n int) {
 }
 func (l *Lexer) AcceptRunRange(rangeTab *unicode.RangeTable) (n int) {
 	for l.AcceptRange(rangeTab) {
+		n++
+	}
+	return
+}
+func (l *Lexer) AcceptRunMinMax(min, max rune) (n int) {
+	for l.AcceptMinMax(min, max) {
+		n++
+	}
+	return
+}
+func (l *Lexer) AcceptRunRune(c rune) (n int) {
+	for l.AcceptRune(c) {
 		n++
 	}
 	return
@@ -191,7 +219,7 @@ func (l *Lexer) dequeue() *Item {
 	head := l.items[0]
 	copy(l.items, l.items[1:])
 	l.items[n-1] = nil
-	l.items = l.items[0:n-1:cap(l.items)]
+	l.items = l.items[0 : n-1 : cap(l.items)]
 	return head
 }
 
