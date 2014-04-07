@@ -100,8 +100,9 @@ func (l *Lexer) Backup() {
 
 // Returns the next rune in the input stream without adding it to the current lexeme.
 func (l *Lexer) Peek() (c rune, width int) {
-	defer func() { l.Backup() }()
-	return l.Advance()
+	c, width = l.Advance()
+	l.Backup()
+	return c, width
 }
 
 // Throw away the current lexeme (do not call Emit).
