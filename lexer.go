@@ -30,7 +30,7 @@ type StateFn func(*Lexer) StateFn
 
 // A type for building lexers.
 type Lexer struct {
-	input string     // string being scanned
+	input []byte     // []byte being scanned
 	start int        // start position for the current lexeme
 	pos   int        // current position
 	width int        // length of the last rune read
@@ -40,7 +40,7 @@ type Lexer struct {
 }
 
 // Create a new lexer. Must be given a non-nil state.
-func New(start StateFn, input string) *Lexer {
+func New(start StateFn, input []byte) *Lexer {
 	if start == nil {
 		panic("nil start state")
 	}
@@ -62,7 +62,7 @@ func (l *Lexer) Pos() int {
 }
 
 // The contents of the item currently being lexed.
-func (l *Lexer) Current() string {
+func (l *Lexer) Current() []byte {
 	return l.input[l.start:l.pos]
 }
 
@@ -79,7 +79,7 @@ func (l *Lexer) Advance() (rune, int) {
 		l.width = 0
 		return EOF, l.width
 	}
-	l.last, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
+	l.last, l.width = utf8.DecodeRune(l.input[l.pos:])
 	if l.last == utf8.RuneError && l.width == 1 {
 		return l.last, l.width
 	}
@@ -140,7 +140,7 @@ func (l *Lexer) Errorf(format string, args ...interface{}) StateFn {
 	l.enqueue(&Item{
 		ItemError,
 		l.start,
-		fmt.Sprintf(format, args...),
+		[]byte(fmt.Sprintf(format, args...)),
 	})
 	return nil
 }
@@ -163,7 +163,7 @@ func (l *Lexer) Next() (i *Item) {
 			return head
 		}
 		if l.state == nil {
-			return &Item{ItemEOF, l.start, ""}
+			return &Item{ItemEOF, l.start, nil}
 		}
 		l.state = l.state(l)
 	}
@@ -195,18 +195,31 @@ const (
 type Item struct {
 	Type  ItemType
 	Pos   int
-	Value string
+	Value []byte
 }
 
 func (i *Item) String() string {
 	switch i.Type {
 	case ItemError:
-		return i.Value
+		return string(i.Value)
 	case ItemEOF:
 		return "EOF"
 	}
 	if len(i.Value) > 10 {
 		return fmt.Sprintf("%.10q...", i.Value)
 	}
-	return i.Value
+	return string(i.Value)
+}
+
+func (i *Item) Error() error {
+	if i.Type == ItemError {
+		return (*Error)(i)
+	}
+	return nil
+}
+
+type Error Item
+
+func (err *Error) Error() string {
+	return (*Item)(err).String()
 }
