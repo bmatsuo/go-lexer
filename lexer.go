@@ -30,13 +30,14 @@ type StateFn func(*Lexer) StateFn
 
 // A type for building lexers.
 type Lexer struct {
-	input []byte     // []byte being scanned
-	start int        // start position for the current lexeme
-	pos   int        // current position
-	width int        // length of the last rune read
-	last  rune       // the last rune read
-	state StateFn    // the current state
-	items *list.List // Buffer of lexed items
+	backed bool       // flag if previously backed up
+	input  []byte     // []byte being scanned
+	start  int        // start position for the current lexeme
+	pos    int        // current position
+	width  int        // length of the last rune read
+	last   rune       // the last rune read
+	state  StateFn    // the current state
+	items  *list.List // Buffer of lexed items
 }
 
 // Create a new lexer. Must be given a non-nil state.
@@ -79,7 +80,11 @@ func (l *Lexer) Advance() (rune, int) {
 		l.width = 0
 		return EOF, l.width
 	}
-	l.last, l.width = utf8.DecodeRune(l.input[l.pos:])
+	if l.backed {
+		l.backed = false
+	} else {
+		l.last, l.width = utf8.DecodeRune(l.input[l.pos:])
+	}
 	if l.last == utf8.RuneError && l.width == 1 {
 		return l.last, l.width
 	}
@@ -89,6 +94,7 @@ func (l *Lexer) Advance() (rune, int) {
 
 // Remove the last rune from the current lexeme and place back in the stream.
 func (l *Lexer) Backup() {
+	l.backed = true
 	l.pos -= l.width
 }
 
