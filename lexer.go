@@ -37,6 +37,7 @@ type Lexer struct {
 	last   rune    // the last rune read
 	state  StateFn // the current state
 	items  []*Item // Buffer of lexed items
+	ihead  int     // index into items
 	free   []*Item // Buffer of unused items
 }
 
@@ -252,9 +253,11 @@ func (l *Lexer) dequeue() *Item {
 		return nil
 	}
 	head := l.items[0]
-	copy(l.items, l.items[1:])
+	for i := 1; i < n; i++ {
+		l.items[i-1] = l.items[i]
+	}
 	l.items[n-1] = nil
-	l.items = l.items[0 : n-1 : cap(l.items)]
+	l.items = l.items[:n-1]
 	return head
 }
 
