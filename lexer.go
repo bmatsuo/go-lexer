@@ -37,6 +37,7 @@ type Lexer struct {
 	last   rune    // the last rune read
 	state  StateFn // the current state
 	items  []*Item // Buffer of lexed items
+	free   []*Item // Buffer of unused items
 }
 
 // Create a new lexer. Must be given a non-nil state.
@@ -188,23 +189,41 @@ func (l *Lexer) AcceptRunRunes(cs []rune) (n int) {
 	return
 }
 
+func (l *Lexer) Free(item *Item) {
+	*item = Item{}
+	l.free = append(l.free, item)
+}
+
+func (l *Lexer) item() *Item {
+	var item *Item
+	nfree := len(l.free)
+	if nfree > 0 {
+		item = l.free[nfree-1]
+		l.free[nfree-1] = nil
+		l.free = l.free[:nfree-1]
+	} else {
+		item = new(Item)
+	}
+	return item
+}
+
 // Emit an error from the Lexer.
 func (l *Lexer) Errorf(format string, args ...interface{}) StateFn {
-	l.enqueue(&Item{
-		ItemError,
-		l.start,
-		[]byte(fmt.Sprintf(format, args...)),
-	})
+	item := l.item()
+	item.Type = ItemError
+	item.Pos = l.start
+	item.Value = []byte(fmt.Sprintf(format, args...))
+	l.enqueue(item)
 	return nil
 }
 
 // Emit the current value as an Item with the specified type.
 func (l *Lexer) Emit(t ItemType) {
-	l.enqueue(&Item{
-		t,
-		l.start,
-		l.input[l.start:l.pos],
-	})
+	item := l.item()
+	item.Type = t
+	item.Pos = l.start
+	item.Value = l.input[l.start:l.pos]
+	l.enqueue(item)
 	l.start = l.pos
 }
 
