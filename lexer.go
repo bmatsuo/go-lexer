@@ -14,7 +14,6 @@
 package lexer
 
 import (
-	"container/list"
 	"fmt"
 	"math"
 	"strings"
@@ -30,14 +29,14 @@ type StateFn func(*Lexer) StateFn
 
 // A type for building lexers.
 type Lexer struct {
-	backed bool       // flag if previously backed up
-	input  []byte     // []byte being scanned
-	start  int        // start position for the current lexeme
-	pos    int        // current position
-	width  int        // length of the last rune read
-	last   rune       // the last rune read
-	state  StateFn    // the current state
-	items  *list.List // Buffer of lexed items
+	backed bool    // flag if previously backed up
+	input  []byte  // []byte being scanned
+	start  int     // start position for the current lexeme
+	pos    int     // current position
+	width  int     // length of the last rune read
+	last   rune    // the last rune read
+	state  StateFn // the current state
+	items  []*Item // Buffer of lexed items
 }
 
 // Create a new lexer. Must be given a non-nil state.
@@ -48,7 +47,6 @@ func New(start StateFn, input []byte) *Lexer {
 	return &Lexer{
 		state: start,
 		input: input,
-		items: list.New(),
 	}
 }
 
@@ -182,15 +180,19 @@ func (l *Lexer) Next() (i *Item) {
 }
 
 func (l *Lexer) enqueue(i *Item) {
-	l.items.PushBack(i)
+	l.items = append(l.items, i)
 }
 
 func (l *Lexer) dequeue() *Item {
-	head := l.items.Front()
-	if head == nil {
+	n := len(l.items)
+	if n == 0 {
 		return nil
 	}
-	return l.items.Remove(head).(*Item)
+	head := l.items[0]
+	copy(l.items, l.items[1:])
+	l.items[n-1] = nil
+	l.items = l.items[0:n-1:cap(l.items)]
+	return head
 }
 
 // A type for all the types of items in the language being lexed.
