@@ -122,6 +122,17 @@ func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
 	}
 	return
 }
+
+// AcceptString advances the lexer len(s) bytes if the next len(s) bytes equal
+// s. AcceptString returns true if l advanced.
+func (l *Lexer) AcceptString(s string) (ok bool) {
+	if strings.HasPrefix(l.input[l.pos:], s) {
+		l.pos += len(s)
+		return true
+	}
+	return false
+}
+
 func (l *Lexer) AcceptRun(valid string) (n int) {
 	for l.Accept(valid) {
 		n++
