@@ -8,9 +8,34 @@
  *  Description: Main source file in go-lexer
  */
 
-// Package lexer provides a simple scanner and types for handrolling lexers.
-// The implementation is based on Rob Pike's talk.
-//	  	http://www.youtube.com/watch?v=HxaD_trXwRE
+/*
+Package lexer provides a simple scanner and types for handrolling lexers.
+The implementation is based on Rob Pike's talk.
+
+	http://www.youtube.com/watch?v=HxaD_trXwRE
+
+Two APIs
+
+The Lexer type has two APIs, one is used byte StateFn types.  The other is
+called by the parser. These APIs are called the scanner and the parser APIs
+here.
+
+The parser API
+
+The only function the parser calls on the lexer is Next to retreive the next
+token from the input stream.  Eventually an item with type ItemEOF is returned
+at which point there are no more tokens in the stream.
+
+The scanner API
+
+Common lexer methods used in a scanner are fhe Accept[Run][Range] family of
+methods.  Accept* methods take a set and advance the lexer if incoming runes
+are in the set. The AcceptRun subfamily advance the lexer as far as possible.
+
+For scanning known sequences of bytes (e.g. keywords) the AcceptString method
+avoids a lot of branching that would be incurred using methods that match
+character classes.
+*/
 package lexer
 
 import (
@@ -103,9 +128,6 @@ func (l *Lexer) Ignore() {
 	l.start = l.pos
 }
 
-// The Accept[Run][Range] family of methods take a set and advance the lexer
-// if incoming runes are in the set. The AcceptRun subfamily advance the lexer
-// as far as possible.
 func (l *Lexer) Accept(valid string) (ok bool) {
 	r, _ := l.Advance()
 	ok = strings.IndexRune(valid, r) >= 0
@@ -114,11 +136,29 @@ func (l *Lexer) Accept(valid string) (ok bool) {
 	}
 	return
 }
-func (l *Lexer) AcceptRange(rangeTab *unicode.RangeTable) (ok bool) {
+
+// AcceptRange advances l's position if the current rune is in tab.
+func (l *Lexer) AcceptRange(tab *unicode.RangeTable) (ok bool) {
 	r, _ := l.Advance()
-	ok = unicode.Is(rangeTab, r)
+	ok = unicode.Is(tab, r)
 	if !ok {
 		l.Backup()
+	}
+	return
+}
+
+// AcceptRun advances l's position as long as the current rune is in valid.
+func (l *Lexer) AcceptRun(valid string) (n int) {
+	for l.Accept(valid) {
+		n++
+	}
+	return
+}
+
+// AcceptRunRange advances l's possition as long as the current rune is in tab.
+func (l *Lexer) AcceptRunRange(tab *unicode.RangeTable) (n int) {
+	for l.AcceptRange(tab) {
+		n++
 	}
 	return
 }
@@ -131,19 +171,6 @@ func (l *Lexer) AcceptString(s string) (ok bool) {
 		return true
 	}
 	return false
-}
-
-func (l *Lexer) AcceptRun(valid string) (n int) {
-	for l.Accept(valid) {
-		n++
-	}
-	return
-}
-func (l *Lexer) AcceptRunRange(rangeTab *unicode.RangeTable) (n int) {
-	for l.AcceptRange(rangeTab) {
-		n++
-	}
-	return
 }
 
 // Emit an error from the Lexer.
