@@ -49,6 +49,16 @@ import (
 
 const EOF rune = 0x04
 
+// IsEOF returns true if n is zero.
+func IsEOF(c rune, n int) bool {
+	return n == 0
+}
+
+// IsInvalid returns true if c is utf8.RuneInvalid and n is 1.
+func IsInvalid(c rune, n int) bool {
+	return c == utf8.RuneError && n == 1
+}
+
 // A state function that scans runes from the lexer's input and emits items.
 // The state functions are responsible for emitting ItemEOF.
 type StateFn func(*Lexer) StateFn
@@ -98,7 +108,8 @@ func (l *Lexer) Last() (r rune, width int) {
 
 // Add one rune of the input stream to the current lexeme. Invalid UTF-8
 // codepoints cause the current call and all subsequent calls to return
-// (utf8.RuneError, 1).
+// (utf8.RuneError, 1).  If l is at the end of its input stream the returned
+// size is zero.
 func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
@@ -236,6 +247,13 @@ type Item struct {
 	Value string
 }
 
+func (i *Item) Err() error {
+	if i.Type == ItemError {
+		return (*Error)(i)
+	}
+	return nil
+}
+
 func (i *Item) String() string {
 	switch i.Type {
 	case ItemError:
@@ -247,4 +265,10 @@ func (i *Item) String() string {
 		return fmt.Sprintf("%.10q...", i.Value)
 	}
 	return i.Value
+}
+
+type Error Item
+
+func (err *Error) Error() string {
+	return (*Item)(err).String()
 }
