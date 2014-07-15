@@ -28,13 +28,21 @@ at which point there are no more tokens in the stream.
 
 The scanner API
 
-Common lexer methods used in a scanner are fhe Accept[Run][Range] family of
+The lexer uses Emit to construct complete lexemes to return from
+future/concurrent calls to Next by the parser.  The scanner makes use of a
+combination of lexer methods to manipulate its position and and prepare lexemes
+to be emitted. Lexer errors are emitted to the parser using the Errorf method.
+
+Common lexer methods used in a scanner are the Accept[Run][Range] family of
 methods.  Accept* methods take a set and advance the lexer if incoming runes
-are in the set. The AcceptRun subfamily advance the lexer as far as possible.
+are in the set. The AcceptRun* subfamily advance the lexer as far as possible.
 
 For scanning known sequences of bytes (e.g. keywords) the AcceptString method
 avoids a lot of branching that would be incurred using methods that match
 character classes.
+
+The remaining methods provide low level functionality that can be combined to
+address corner cases.
 */
 package lexer
 
