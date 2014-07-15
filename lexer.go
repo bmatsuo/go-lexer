@@ -106,10 +106,9 @@ func (l *Lexer) Last() (r rune, width int) {
 	return l.last, l.width
 }
 
-// Add one rune of the input stream to the current lexeme. Invalid UTF-8
-// codepoints cause the current call and all subsequent calls to return
-// (utf8.RuneError, 1).  If l is at the end of its input stream the returned
-// size is zero.
+// Add one rune of input to the current lexeme. Invalid UTF-8 codepoints cause
+// the current call and all subsequent calls to return (utf8.RuneError, 1).  If
+// there is no input the returned size is zero.
 func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
@@ -128,17 +127,19 @@ func (l *Lexer) Backup() {
 	l.pos -= l.width
 }
 
-// Returns the next rune in the input stream without adding it to the current lexeme.
+// Returns the next rune in the input stream without adding it to the current
+// lexeme.
 func (l *Lexer) Peek() (c rune, width int) {
 	defer func() { l.Backup() }()
 	return l.Advance()
 }
 
-// Throw away the current lexeme (do not call Emit).
+// Ignore throws away the current lexeme.
 func (l *Lexer) Ignore() {
 	l.start = l.pos
 }
 
+// Accept advances the lexer if the next rune is in valid.
 func (l *Lexer) Accept(valid string) (ok bool) {
 	r, _ := l.Advance()
 	ok = strings.IndexRune(valid, r) >= 0
