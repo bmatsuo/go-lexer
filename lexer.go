@@ -157,6 +157,21 @@ func (l *Lexer) Accept(valid string) (ok bool) {
 	return
 }
 
+// AcceptFunc advances the lexer if fn return true for the next rune.
+func (l *Lexer) AcceptFunc(fn func(rune) bool) (ok bool) {
+	switch r, n := l.Advance(); {
+	case IsEOF(r, n):
+		return false
+	case IsInvalid(r, n):
+		return false
+	case fn(r):
+		return true
+	default:
+		l.Backup()
+		return false
+	}
+}
+
 // AcceptRange advances l's position if the current rune is in tab.
 func (l *Lexer) AcceptRange(tab *unicode.RangeTable) (ok bool) {
 	r, _ := l.Advance()
@@ -173,6 +188,16 @@ func (l *Lexer) AcceptRun(valid string) (n int) {
 		n++
 	}
 	return
+}
+
+// AcceptRunFunc advances l's position as long as fn returns true for the next
+// input rune.
+func (l *Lexer) AcceptRunFunc(fn func(rune) bool) int {
+	var n int
+	for l.AcceptFunc(fn) {
+		n++
+	}
+	return n
 }
 
 // AcceptRunRange advances l's possition as long as the current rune is in tab.
