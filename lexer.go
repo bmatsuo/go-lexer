@@ -281,6 +281,7 @@ type Item struct {
 	Value string
 }
 
+// Err returns the error corresponding to i, of one exists.
 func (i *Item) Err() error {
 	if i.Type == ItemError {
 		return (*Error)(i)
@@ -288,6 +289,7 @@ func (i *Item) Err() error {
 	return nil
 }
 
+// String returns the raw lexeme of i.
 func (i *Item) String() string {
 	switch i.Type {
 	case ItemError:
