@@ -61,7 +61,7 @@ func ExampleLexer_advance() {
 			case itemFail:
 				status = append(status, fmt.Sprintf("%d failure", item.Pos))
 			default:
-				panic(fmt.Sprintf("unexpected item %0x (pos %d)", itemOK, item.Pos))
+				panic(fmt.Sprintf("unexpected item %0x (pos %d)", item.Type, item.Pos))
 			}
 		}
 	}
