@@ -62,7 +62,7 @@ func IsEOF(c rune, n int) bool {
 	return n == 0
 }
 
-// IsInvalid returns true if c is utf8.RuneInvalid and n is 1.
+// IsInvalid returns true if c is utf8.RuneError and n is 1.
 func IsInvalid(c rune, n int) bool {
 	return c == utf8.RuneError && n == 1
 }
