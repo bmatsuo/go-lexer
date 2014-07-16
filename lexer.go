@@ -14,6 +14,10 @@ The implementation is based on Rob Pike's talk.
 
 	http://www.youtube.com/watch?v=HxaD_trXwRE
 
+There are some key differences to Pike's presented code.  Next has been renamed
+Advance to be more idiomatic with Backup. Next is used by the parser to
+retrieve items from the lexer.
+
 Two APIs
 
 The Lexer type has two APIs, one is used byte StateFn types.  The other is
