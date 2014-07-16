@@ -29,9 +29,10 @@ at which point there are no more tokens in the stream.
 The scanner API
 
 The lexer uses Emit to construct complete lexemes to return from
-future/concurrent calls to Next by the parser.  The scanner makes use of a
-combination of lexer methods to manipulate its position and and prepare lexemes
-to be emitted. Lexer errors are emitted to the parser using the Errorf method.
+future/concurrent calls to Next by the parser.  The scanner uses a combination
+of methods to manipulate its position and and prepare lexemes to be emitted.
+Lexer errors are emitted to the parser using the Errorf method which keeps the
+scanner-parser interface uniform.
 
 Common lexer methods used in a scanner are the Accept[Run][Range] family of
 methods.  Accept* methods take a set and advance the lexer if incoming runes
@@ -67,11 +68,12 @@ func IsInvalid(c rune, n int) bool {
 	return c == utf8.RuneError && n == 1
 }
 
-// A state function that scans runes from the lexer's input and emits items.
-// The state functions are responsible for emitting ItemEOF.
+// StateFn functions scan runes from the lexer's input and emit items.  StateFn
+// implementations responsible for emitting ItemEOF.
 type StateFn func(*Lexer) StateFn
 
-// A type for building lexers.
+// Lexer contains an input string and state associate with the lexing the
+// input.
 type Lexer struct {
 	input string     // string being scanned
 	start int        // start position for the current lexeme
@@ -94,29 +96,38 @@ func New(start StateFn, input string) *Lexer {
 	}
 }
 
-// The starting position of the current item.
+// Input returns the input string being lexed by the l.
+func (l *Lexer) Input() string {
+	return l.input
+}
+
+// Start marks the first byte of item currently being lexed.
 func (l *Lexer) Start() int {
 	return l.start
 }
 
-// The position following the last read rune.
+// Pos marks the next byte to be read in the input string.  The behavior of Pos
+// is unspecified if an error previously occurred or if all input has been
+// consumed.
 func (l *Lexer) Pos() int {
 	return l.pos
 }
 
-// The contents of the item currently being lexed.
+// Current returns the contents of the item currently being lexed.
 func (l *Lexer) Current() string {
 	return l.input[l.start:l.pos]
 }
 
-// The last rune read from the input stream.
+// Last return the last rune read from the input stream.
 func (l *Lexer) Last() (r rune, width int) {
 	return l.last, l.width
 }
 
-// Add one rune of input to the current lexeme. Invalid UTF-8 codepoints cause
-// the current call and all subsequent calls to return (utf8.RuneError, 1).  If
-// there is no input the returned size is zero.
+// Advance adds one rune of input to the current lexeme, increments the lexer's
+// position, and returns the input rune with its size in bytes (encoded as
+// UTF-8).  Invalid UTF-8 codepoints cause the current call and all subsequent
+// calls to return (utf8.RuneError, 1).  If there is no input the returned size
+// is zero.
 func (l *Lexer) Advance() (rune, int) {
 	if l.pos >= len(l.input) {
 		l.width = 0
@@ -130,16 +141,19 @@ func (l *Lexer) Advance() (rune, int) {
 	return l.last, l.width
 }
 
-// Remove the last rune from the current lexeme and place back in the stream.
+// Backup removes the last rune from the current lexeme and moves l's position
+// back in the input string accordingly. Backup should only be called after a
+// call to Advance.
 func (l *Lexer) Backup() {
 	l.pos -= l.width
 }
 
-// Returns the next rune in the input stream without adding it to the current
-// lexeme.
-func (l *Lexer) Peek() (c rune, width int) {
-	defer func() { l.Backup() }()
-	return l.Advance()
+// Peek returns the next rune in the input stream without adding it to the
+// current lexeme.
+func (l *Lexer) Peek() (rune, int) {
+	c, n := l.Advance()
+	l.Backup()
+	return c, n
 }
 
 // Ignore throws away the current lexeme.
@@ -218,12 +232,14 @@ func (l *Lexer) AcceptString(s string) (ok bool) {
 	return false
 }
 
-// Emit an error from the Lexer.
-func (l *Lexer) Errorf(format string, args ...interface{}) StateFn {
+// Errorf causes an error item to be emitted from l.Next().  The item's value
+// (and its error message) are the result of evaluating format and vs with
+// fmt.Sprintf.
+func (l *Lexer) Errorf(format string, vs ...interface{}) StateFn {
 	l.enqueue(&Item{
 		ItemError,
 		l.start,
-		fmt.Sprintf(format, args...),
+		fmt.Sprintf(format, vs...),
 	})
 	return nil
 }
@@ -281,7 +297,7 @@ type Item struct {
 	Value string
 }
 
-// Err returns the error corresponding to i, of one exists.
+// Err returns the error corresponding to i, if one exists.
 func (i *Item) Err() error {
 	if i.Type == ItemError {
 		return (*Error)(i)
@@ -303,6 +319,7 @@ func (i *Item) String() string {
 	return i.Value
 }
 
+// Error is an item of type ItemError
 type Error Item
 
 func (err *Error) Error() string {
