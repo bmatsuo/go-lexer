@@ -68,8 +68,8 @@ func IsInvalid(c rune, n int) bool {
 	return c == utf8.RuneError && n == 1
 }
 
-// StateFn functions scan runes from the lexer's input and emit items.  StateFn
-// implementations responsible for emitting ItemEOF.
+// StateFn functions scan runes from the lexer's input and emit items.  A StateFn
+// is responsible for emitting ItemEOF after input has been consumed.
 type StateFn func(*Lexer) StateFn
 
 // Lexer contains an input string and state associate with the lexing the
