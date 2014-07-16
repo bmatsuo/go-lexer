@@ -12,7 +12,7 @@ import (
 // using the format "%d success", the rune '!' is translated using "%d
 // failure".
 func ExampleLexer_advance() {
-	// delare token times as constants
+	// delare token types as constants
 	const (
 		itemOK lexer.ItemType = iota
 		itemFail
